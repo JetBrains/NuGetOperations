@@ -1,6 +1,6 @@
 ﻿using System.Data.SqlClient;
 using System.Linq;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 using NuGetGallery.Operations.Common;
 
 namespace NuGetGallery.Operations.Tasks
@@ -23,12 +23,11 @@ namespace NuGetGallery.Operations.Tasks
                 "Delete the user account and all packages for '{0}'.",
                 Username);
 
-            using (var sqlConnection = new SqlConnection(ConnectionString.ConnectionString))
-            using (var dbExecutor = new SqlExecutor(sqlConnection))
+            using (var db = new SqlConnection(ConnectionString.ConnectionString))
             {
-                sqlConnection.Open();
+                db.Open();
 
-                var user = Util.GetUser(dbExecutor, Username);
+                var user = Util.GetUser(db, Username);
 
                 if (user == null)
                 {
@@ -62,7 +61,7 @@ namespace NuGetGallery.Operations.Tasks
 
                 if (!WhatIf)
                 {
-                    dbExecutor.Execute(
+                    db.Execute(
                         "DELETE pro FROM PackageRegistrationOwners pro WHERE pro.UserKey = @userKey",
                         new { userKey = user.Key });
                 }
@@ -71,7 +70,7 @@ namespace NuGetGallery.Operations.Tasks
 
                 if (!WhatIf)
                 {
-                    dbExecutor.Execute(
+                    db.Execute(
                         "DELETE por FROM PackageOwnerRequests por WHERE @userKey IN (por.NewOwnerKey, por.RequestingOwnerKey)",
                         new { userKey = user.Key });
                 }
@@ -80,7 +79,7 @@ namespace NuGetGallery.Operations.Tasks
 
                 if (!WhatIf)
                 {
-                    dbExecutor.Execute(
+                    db.Execute(
                         "DELETE u FROM Users u WHERE u.[Key] = @userKey",
                         new { userKey = user.Key });
                 }

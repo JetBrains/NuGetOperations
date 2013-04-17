@@ -1,5 +1,5 @@
 ﻿using System.Data.SqlClient;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 
 namespace NuGetGallery.Operations
 {
@@ -13,18 +13,17 @@ namespace NuGetGallery.Operations
 
             Log.Info("Listing backups for server '{0}':", dbServer);
             
-            using (var sqlConnection = new SqlConnection(masterConnectionString))
-            using (var dbExecutor = new SqlExecutor(sqlConnection))
+            using (var db = new SqlConnection(masterConnectionString))
             {
-                sqlConnection.Open();
+                db.Open();
 
-                var dbs = dbExecutor.Query<Database>(
+                var backups = db.Query<Database>(
                     "SELECT name FROM sys.databases WHERE name LIKE 'Backup_%' AND state = @state",
                     new { state = Util.OnlineState });
 
-                foreach(var db in dbs)
+                foreach(var backup in backups)
                 {
-                    var timestamp = Util.GetDatabaseNameTimestamp(db);
+                    var timestamp = Util.GetDatabaseNameTimestamp(backup);
                     var date = Util.GetDateTimeFromTimestamp(timestamp);
 
                     Log.Info("{0} ({1})", timestamp, date);

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Data.SqlClient;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 using NuGetGallery.Operations.Common;
 
 namespace NuGetGallery.Operations
@@ -15,34 +15,33 @@ namespace NuGetGallery.Operations
 
             Log.Trace("Deleting old warehouse backups for server '{0}':", dbServer);
 
-            using (var sqlConnection = new SqlConnection(masterConnectionString))
+            using (var db = new SqlConnection(masterConnectionString))
             {
-                sqlConnection.Open();
+                db.Open();
 
-                using (var dbExecutor = new SqlExecutor(sqlConnection))
+                var backups = db.Query<Database>(
+                    "SELECT name FROM sys.databases WHERE name LIKE 'WarehouseBackup_%' AND state = @state",
+                    new { state = Util.OnlineState });
+
+                foreach (var backup in backups)
                 {
-                    var dbs = dbExecutor.Query<Database>(
-                        "SELECT name FROM sys.databases WHERE name LIKE 'WarehouseBackup_%' AND state = @state",
-                        new { state = Util.OnlineState });
-
-                    foreach (var db in dbs)
+                    var timestamp = Util.GetDatabaseNameTimestamp(backup);
+                    var date = Util.GetDateTimeFromTimestamp(timestamp);
+                    if (DateTime.UtcNow.Subtract(TimeSpan.FromDays(7)) > date)
                     {
-                        var timestamp = Util.GetDatabaseNameTimestamp(db);
-                        var date = Util.GetDateTimeFromTimestamp(timestamp);
-                        if (DateTime.UtcNow.Subtract(TimeSpan.FromDays(7)) > date)
-                            DeleteDatabaseBackup(db, dbExecutor);
+                        DeleteDatabaseBackup(backup, db);
                     }
                 }
             }
         }
 
-        private void DeleteDatabaseBackup(Database db, SqlExecutor dbExecutor)
+        private void DeleteDatabaseBackup(Database backup, SqlConnection db)
         {
             if (!WhatIf)
             {
-                dbExecutor.Execute(string.Format("DROP DATABASE {0}", db.Name));
+                db.Execute(string.Format("DROP DATABASE {0}", backup.Name));
             }
-            Log.Info("Deleted database {0}.", db.Name);
+            Log.Info("Deleted database {0}.", backup.Name);
         }
     }
 }

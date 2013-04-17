@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 
 namespace NuGetGallery.Operations
 {
@@ -96,11 +96,10 @@ namespace NuGetGallery.Operations
 
         IDictionary<string, Package> GetPackages()
         {
-            using (var sqlConnection = new SqlConnection(ConnectionString.ConnectionString))
-            using (var dbExecutor = new SqlExecutor(sqlConnection))
+            using (var db = new SqlConnection(ConnectionString.ConnectionString))
             {
-                sqlConnection.Open();
-                var packages = dbExecutor.Query<Package>(@"
+                db.Open();
+                var packages = db.Query<Package>(@"
                     SELECT pr.Id, p.Version, p.Hash 
                     FROM Packages p 
                         JOIN PackageRegistrations pr ON pr.[Key] = p.PackageRegistrationKey 

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Data.SqlClient;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 using NuGetGallery.Operations.Common;
 
 namespace NuGetGallery.Operations
@@ -28,44 +28,41 @@ namespace NuGetGallery.Operations
 
             Log.Trace("Connecting to server '{0}' to back up database '{1}'.", dbServer, dbName);
 
-            using (var sqlConnection = new SqlConnection(masterConnectionString))
+            using (var db = new SqlConnection(masterConnectionString))
             {
-                sqlConnection.Open();
+                db.Open();
 
-                using (var dbExecutor = new SqlExecutor(sqlConnection))
+                Log.Trace("Checking for a backup in progress.");
+                if (Util.BackupIsInProgress(db))
                 {
-                    Log.Trace("Checking for a backup in progress.");
-                    if (Util.BackupIsInProgress(dbExecutor))
-                    {
-                        Log.Trace("Found a backup in progress; exiting.");
-                        return;
-                    }
-
-                    Log.Trace("Found no backup in progress.");
-
-                    Log.Trace("Getting last backup time.");
-                    var lastBackupTime = Util.GetLastBackupTime(dbExecutor);
-                    if (lastBackupTime >= DateTime.UtcNow.Subtract(TimeSpan.FromMinutes(IfOlderThan)))
-                    {
-                        Log.Info("Skipping Backup. Last Backup was less than {0} minutes ago", IfOlderThan);
-
-                        SkippingBackup = true;
-
-                        return;
-                    }
-                    Log.Trace("Last backup time is more than {0} minutes ago. Starting new backup.", IfOlderThan);
-
-                    var timestamp = Util.GetTimestamp();
-
-                    BackupName = string.Format("WarehouseBackup_{0}", timestamp);
-
-                    if (!WhatIf)
-                    {
-                        dbExecutor.Execute(string.Format("CREATE DATABASE {0} AS COPY OF {1}", BackupName, dbName));
-                    }
-
-                    Log.Info("Starting '{0}'", BackupName);
+                    Log.Trace("Found a backup in progress; exiting.");
+                    return;
                 }
+
+                Log.Trace("Found no backup in progress.");
+
+                Log.Trace("Getting last backup time.");
+                var lastBackupTime = Util.GetLastBackupTime(db);
+                if (lastBackupTime >= DateTime.UtcNow.Subtract(TimeSpan.FromMinutes(IfOlderThan)))
+                {
+                    Log.Info("Skipping Backup. Last Backup was less than {0} minutes ago", IfOlderThan);
+
+                    SkippingBackup = true;
+
+                    return;
+                }
+                Log.Trace("Last backup time is more than {0} minutes ago. Starting new backup.", IfOlderThan);
+
+                var timestamp = Util.GetTimestamp();
+
+                BackupName = string.Format("WarehouseBackup_{0}", timestamp);
+
+                if (!WhatIf)
+                {
+                    db.Execute(string.Format("CREATE DATABASE {0} AS COPY OF {1}", BackupName, dbName));
+                }
+
+                Log.Info("Starting '{0}'", BackupName);
             }
         }
     }

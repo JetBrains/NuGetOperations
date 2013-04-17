@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 using NuGet;
 
 namespace NuGetGallery.Operations
@@ -94,11 +94,10 @@ namespace NuGetGallery.Operations
 
         IEnumerable<int> GetAlreadyPopulatedPackageKeys()
         {
-            using (var sqlConnection = new SqlConnection(ConnectionString.ConnectionString))
-            using (var dbExecutor = new SqlExecutor(sqlConnection))
+            using (var db = new SqlConnection(ConnectionString.ConnectionString))
             {
-                sqlConnection.Open();
-                return dbExecutor.Query<int>(@"
+                db.Open();
+                return db.Query<int>(@"
                     SELECT pf.Package_Key
                     FROM PackageFrameworks pf");
             }
@@ -106,11 +105,10 @@ namespace NuGetGallery.Operations
 
         IDictionary<int, Package> GetAllPackages()
         {
-            using (var sqlConnection = new SqlConnection(ConnectionString.ConnectionString))
-            using (var dbExecutor = new SqlExecutor(sqlConnection))
+            using (var db = new SqlConnection(ConnectionString.ConnectionString))
             {
-                sqlConnection.Open();
-                var packages = dbExecutor.Query<Package>(@"
+                db.Open();
+                var packages = db.Query<Package>(@"
                     SELECT p.[Key], pr.Id, p.Version, p.Hash 
                     FROM Packages p
                         JOIN PackageRegistrations pr on pr.[Key] = p.PackageRegistrationKey");
@@ -124,16 +122,11 @@ namespace NuGetGallery.Operations
         {
             foreach (var targetFramework in targetFrameworks)
             {
-                using (var sqlConnection = new SqlConnection(ConnectionString.ConnectionString))
-                using (var dbExecutor = new SqlExecutor(sqlConnection))
+                using (var db = new SqlConnection(ConnectionString.ConnectionString))
                 {
-                    sqlConnection.Open();
-                    dbExecutor.Execute(
-                        @"
-                    INSERT INTO PackageFrameworks 
-                        (Package_Key, TargetFramework)
-                    VALUES
-                        (@packageKey, @targetFramework)",
+                    db.Open();
+                    db.Execute(@"INSERT INTO PackageFrameworks (Package_Key, TargetFramework)
+                                 VALUES (@packageKey, @targetFramework)",
                         new { packageKey = package.Key, targetFramework});
                 }
             }

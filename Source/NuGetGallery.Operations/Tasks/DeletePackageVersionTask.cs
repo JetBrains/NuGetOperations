@@ -1,5 +1,5 @@
 ﻿using System.Data.SqlClient;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 
 namespace NuGetGallery.Operations
 {
@@ -8,13 +8,12 @@ namespace NuGetGallery.Operations
     {
         public override void ExecuteCommand()
         {
-            using (var sqlConnection = new SqlConnection(ConnectionString.ConnectionString))
-            using (var dbExecutor = new SqlExecutor(sqlConnection))
+            using (var db = new SqlConnection(ConnectionString.ConnectionString))
             {
-                sqlConnection.Open();
+                db.Open();
 
                 var package = Util.GetPackage(
-                    dbExecutor,
+                    db,
                     PackageId,
                     PackageVersion);
 
@@ -31,19 +30,19 @@ namespace NuGetGallery.Operations
 
                 if (!WhatIf)
                 {
-                    dbExecutor.Execute(
+                    db.Execute(
                         "DELETE pa FROM PackageAuthors pa JOIN Packages p ON p.[Key] = pa.PackageKey WHERE p.[Key] = @key",
                         new { key = package.Key });
-                    dbExecutor.Execute(
+                    db.Execute(
                         "DELETE pd FROM PackageDependencies pd JOIN Packages p ON p.[Key] = pd.PackageKey WHERE p.[Key] = @key",
                         new { key = package.Key });
-                    dbExecutor.Execute(
+                    db.Execute(
                         "DELETE ps FROM PackageStatistics ps JOIN Packages p ON p.[Key] = ps.PackageKey WHERE p.[Key] = @key",
                         new { key = package.Key });
-                    dbExecutor.Execute(
+                    db.Execute(
                         "DELETE pf FROM PackageFrameworks pf JOIN Packages p ON p.[Key] = pf.Package_Key WHERE p.[Key] = @key",
                         new { key = package.Key });
-                    dbExecutor.Execute(
+                    db.Execute(
                         "DELETE p FROM Packages p JOIN PackageRegistrations pr ON pr.[Key] = p.PackageRegistrationKey WHERE p.[Key] = @key",
                         new { key = package.Key });
                 }

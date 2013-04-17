@@ -2,7 +2,7 @@
 using System.Data.SqlClient;
 using System.IO;
 using System.Net.Http;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 using Microsoft.WindowsAzure.Storage;
 
 namespace NuGetGallery.Operations.Tasks
@@ -12,12 +12,11 @@ namespace NuGetGallery.Operations.Tasks
     {
         public override void ExecuteCommand()
         {
-            using (var sqlConnection = new SqlConnection(ConnectionString.ConnectionString))
-            using (var dbExecutor = new SqlExecutor(sqlConnection))
+            using (var db = new SqlConnection(ConnectionString.ConnectionString))
             {
-                sqlConnection.Open();
+                db.Open();
 
-                var externalPackages = dbExecutor.Query<Package>(@"
+                var externalPackages = db.Query<Package>(@"
                     SELECT pr.Id, p.Version, p.ExternalPackageUrl
                     FROM Packages p 
                         JOIN PackageRegistrations pr ON pr.[Key] = p.PackageRegistrationKey

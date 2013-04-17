@@ -1,7 +1,7 @@
 ﻿using System.Data.SqlClient;
 using System.Linq;
 using System.Net.Http;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 
 namespace NuGetGallery.Operations
 {
@@ -11,11 +11,10 @@ namespace NuGetGallery.Operations
         public override void ExecuteCommand()
         {
             // todo: move the data access from the website to a common lib and use that instead
-            using (var sqlConnection = new SqlConnection(ConnectionString.ConnectionString))
-            using (var dbExecutor = new SqlExecutor(sqlConnection))
+            using (var db = new SqlConnection(ConnectionString.ConnectionString))
             {
-                sqlConnection.Open();
-                var package = dbExecutor.Query<Package>(
+                db.Open();
+                var package = db.Query<Package>(
                     "SELECT p.[Key], pr.Id, p.Version, p.ExternalPackageUrl FROM Packages p JOIN PackageRegistrations pr ON pr.[Key] = p.PackageRegistrationKey WHERE pr.Id = @id AND p.Version = @version AND p.ExternalPackageUrl IS NOT NULL", 
                     new { id = PackageId, version = PackageVersion })
                     .SingleOrDefault();
@@ -40,7 +39,7 @@ namespace NuGetGallery.Operations
 
                     if (!WhatIf)
                     {
-                        dbExecutor.Execute(
+                        db.Execute(
                             "UPDATE Packages SET ExternalPackageUrl = NULL WHERE [Key] = @key",
                             new { key = package.Key });
                     }

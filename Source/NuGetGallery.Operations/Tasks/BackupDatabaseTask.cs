@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Data.SqlClient;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 
 namespace NuGetGallery.Operations
 {
@@ -29,13 +29,12 @@ namespace NuGetGallery.Operations
 
             SkippingBackup = false;
 
-            using (var sqlConnection = new SqlConnection(masterConnectionString))
-            using (var dbExecutor = new SqlExecutor(sqlConnection))
+            using (var db = new SqlConnection(masterConnectionString))
             {
-                sqlConnection.Open();
+                db.Open();
 
                 Log.Trace("Checking for a backup in progress.");
-                if (Util.BackupIsInProgress(dbExecutor))
+                if (Util.BackupIsInProgress(db))
                 {
                     Log.Trace("Found a backup in progress; exiting.");
                     return;
@@ -44,7 +43,7 @@ namespace NuGetGallery.Operations
                 Log.Trace("Found no backup in progress.");
 
                 Log.Trace("Getting last backup time.");
-                var lastBackupTime = Util.GetLastBackupTime(dbExecutor);
+                var lastBackupTime = Util.GetLastBackupTime(db);
                 if (lastBackupTime >= DateTime.UtcNow.Subtract(TimeSpan.FromMinutes(IfOlderThan)))
                 {
                     Log.Info("Skipping Backup. Last Backup was less than {0} minutes ago", IfOlderThan);
@@ -59,7 +58,7 @@ namespace NuGetGallery.Operations
 
                 BackupName = string.Format("Backup_{0}", timestamp);
 
-                dbExecutor.Execute(string.Format("CREATE DATABASE {0} AS COPY OF {1}", BackupName, dbName));
+                db.Execute(string.Format("CREATE DATABASE {0} AS COPY OF {1}", BackupName, dbName));
 
                 Log.Info("Starting '{0}'", BackupName);
             }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Data.SqlClient;
 using System.Threading;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 using NuGetGallery.Operations.Common;
 
 namespace NuGetGallery.Operations
@@ -41,18 +41,17 @@ namespace NuGetGallery.Operations
 
         public override void ExecuteCommand()
         {
-            using (var destinationConnection = new SqlConnection(Util.GetMasterConnectionString(DestinationConnectionString.ConnectionString)))
-            using (var destinationDbExecutor = new SqlExecutor(destinationConnection))
+            using (var destDb = new SqlConnection(Util.GetMasterConnectionString(DestinationConnectionString.ConnectionString)))
             {
                 string sourceDbServerName = Util.GetDatabaseServerName(SourceConnectionString);
                 string destinationDbServerName = Util.GetDatabaseServerName(DestinationConnectionString);
                 
-                destinationConnection.Open();
+                destDb.Open();
 
                 var copyDbName = string.Format("CopyOf{0}", BackupName);
                 
                 var existingDatabaseBackup = Util.GetDatabase(
-                    destinationDbExecutor,
+                    destDb,
                     copyDbName);
                 
                 if (existingDatabaseBackup != null && existingDatabaseBackup.State == Util.OnlineState)
@@ -64,7 +63,7 @@ namespace NuGetGallery.Operations
                 if (existingDatabaseBackup == null)
                 {
                     StartBackupCopy(
-                        destinationDbExecutor,
+                        destDb,
                         sourceDbServerName,
                         destinationDbServerName,
                         BackupName,
@@ -78,14 +77,14 @@ namespace NuGetGallery.Operations
                 }
 
                 WaitForBackupCopy(
-                    destinationDbExecutor,
+                    destDb,
                     destinationDbServerName,
                     copyDbName);
             }
         }
 
         private void StartBackupCopy(
-            IDbExecutor dbExecutor, 
+            SqlConnection db, 
             string sourceDbServerName,
             string destinationDbServerName,
             string sourceDbName,
@@ -95,13 +94,13 @@ namespace NuGetGallery.Operations
             if (!WhatIf)
             {
                 var sql = string.Format("CREATE DATABASE {0} AS COPY OF {1}.{2}", copyDbName, sourceDbServerName, sourceDbName);
-                dbExecutor.Execute(sql);
+                db.Execute(sql);
             }
             Log.Info("Copying {0} from {1} to {2}.", sourceDbName, sourceDbServerName, destinationDbServerName);
         }
 
         private void WaitForBackupCopy(
-            SqlExecutor dbExecutor,
+            SqlConnection db,
             string destinationDbServerName,
             string copyDbName)
         {
@@ -109,7 +108,7 @@ namespace NuGetGallery.Operations
             while (DateTime.UtcNow < timeToGiveUp)
             {
                 if (WhatIf || Util.DatabaseExistsAndIsOnline(
-                    dbExecutor,
+                    db,
                     copyDbName))
                 {
                     Log.Info("Copied {0} to {1}.", copyDbName, destinationDbServerName);

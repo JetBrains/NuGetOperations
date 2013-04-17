@@ -1,6 +1,6 @@
 ﻿using System.Data.SqlClient;
 using System.IO;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 using NuGet;
 using NuGetGallery.Operations.Common;
 
@@ -20,13 +20,12 @@ namespace NuGetGallery.Operations
 
         public override void ExecuteCommand()
         {
-            using (var sqlConnection = new SqlConnection(ConnectionString.ConnectionString))
-            using (var dbExecutor = new SqlExecutor(sqlConnection))
+            using (var db = new SqlConnection(ConnectionString.ConnectionString))
             {
-                sqlConnection.Open();
+                db.Open();
 
                 var package = Util.GetPackage(
-                    dbExecutor,
+                    db,
                     PackageId,
                     PackageVersion);
 
@@ -45,7 +44,7 @@ namespace NuGetGallery.Operations
 
                 var hash = Util.GenerateHash(ReplacementFile.ReadAllBytes());
                 Log.Info("Updating hash for package '{0}.{1}' to '{2}'", package.Id, package.Version, hash);
-                dbExecutor.Execute(
+                db.Execute(
                     "UPDATE Packages SET Hash = @hash WHERE [Key] = @key",
                     new { @key = package.Key, hash });
 

@@ -1,5 +1,5 @@
 ﻿using System.Data.SqlClient;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 using NuGetGallery.Operations.Common;
 
 namespace NuGetGallery.Operations
@@ -22,16 +22,15 @@ namespace NuGetGallery.Operations
                 "Deleting package registration and all package versions for '{0}'.",
                 PackageId);
 
-            using (var sqlConnection = new SqlConnection(ConnectionString.ConnectionString))
-            using (var dbExecutor = new SqlExecutor(sqlConnection))
+            using (var db = new SqlConnection(ConnectionString.ConnectionString))
             {
-                sqlConnection.Open();
+                db.Open();
 
                 var packageRegistration = Util.GetPackageRegistration(
-                    dbExecutor,
+                    db,
                     PackageId);
                 var packages = Util.GetPackages(
-                    dbExecutor,
+                    db,
                     packageRegistration.Key);
                 
                 foreach(var package in packages)
@@ -50,13 +49,13 @@ namespace NuGetGallery.Operations
                     packageRegistration.Id);
                 if (!WhatIf)
                 {
-                    dbExecutor.Execute(
+                    db.Execute(
                         "DELETE por FROM PackageOwnerRequests por JOIN PackageRegistrations pr ON pr.[Key] = por.PackageRegistrationKey WHERE pr.[Key] = @packageRegistrationKey",
                         new { packageRegistrationKey = packageRegistration.Key });
-                    dbExecutor.Execute(
+                    db.Execute(
                         "DELETE pro FROM PackageRegistrationOwners pro JOIN PackageRegistrations pr ON pr.[Key] = pro.PackageRegistrationKey WHERE pr.[Key] = @packageRegistrationKey",
                         new { packageRegistrationKey = packageRegistration.Key });
-                    dbExecutor.Execute(
+                    db.Execute(
                         "DELETE FROM PackageRegistrations WHERE [Key] = @packageRegistrationKey",
                         new { packageRegistrationKey = packageRegistration.Key });
                 }

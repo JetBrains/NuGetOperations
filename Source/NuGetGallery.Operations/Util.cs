@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Web;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace NuGetGallery.Operations
@@ -16,9 +16,9 @@ namespace NuGetGallery.Operations
         public const byte CopyingState = 7;
         public const byte OnlineState = 0;
         
-        public static bool BackupIsInProgress(SqlExecutor dbExecutor)
+        public static bool BackupIsInProgress(SqlConnection db)
         {
-            return dbExecutor.Query<Database>(
+            return db.Query<Database>(
                 "SELECT name, state FROM sys.databases WHERE name LIKE 'Backup_%' AND state = @state",
                 new { state = CopyingState })
                 .Any();
@@ -80,10 +80,10 @@ namespace NuGetGallery.Operations
         }
 
         public static bool DatabaseExistsAndIsOnline(
-            IDbExecutor dbExecutor,
+            SqlConnection db,
             string restoreName)
         {
-            var backupDbs = dbExecutor.Query<Database>(
+            var backupDbs = db.Query<Database>(
                 "SELECT name, state FROM sys.databases WHERE name = @restoreName AND state = @state",
                 new { restoreName, state = OnlineState })
                 .OrderByDescending(database => database.Name);
@@ -91,9 +91,9 @@ namespace NuGetGallery.Operations
             return backupDbs.FirstOrDefault() != null;
         }
 
-        public static Database GetLastBackup(SqlExecutor dbExecutor)
+        public static Database GetLastBackup(SqlConnection db)
         {
-            var backupDbs = dbExecutor.Query<Database>(
+            var backupDbs = db.Query<Database>(
                 "SELECT name, state FROM sys.databases WHERE name LIKE 'Backup_%' AND state = @state",
                 new { state = OnlineState })
                 .OrderByDescending(database => database.Name);
@@ -101,9 +101,9 @@ namespace NuGetGallery.Operations
             return backupDbs.FirstOrDefault();
         }
 
-        public static DateTime GetLastBackupTime(SqlExecutor dbExecutor)
+        public static DateTime GetLastBackupTime(SqlConnection db)
         {
-            var lastBackup = GetLastBackup(dbExecutor);
+            var lastBackup = GetLastBackup(db);
 
             if (lastBackup == null)
                 return DateTime.MinValue;
@@ -197,44 +197,44 @@ namespace NuGetGallery.Operations
         }
 
         internal static Package GetPackage(
-            IDbExecutor dbExecutor, 
+            SqlConnection db, 
             string id, 
             string version)
         {
-            return dbExecutor.Query<Package>(
+            return db.Query<Package>(
                 "SELECT p.[Key], pr.Id, p.Version, p.Hash FROM Packages p JOIN PackageRegistrations pr ON pr.[Key] = p.PackageRegistrationKey WHERE pr.Id = @id AND p.Version = @version",
                 new { id, version }).SingleOrDefault();
         }
 
         internal static PackageRegistration GetPackageRegistration(
-            IDbExecutor dbExecutor, 
+            SqlConnection db, 
             string id)
         {
-            return dbExecutor.Query<PackageRegistration>(
+            return db.Query<PackageRegistration>(
                 "SELECT [Key], Id FROM PackageRegistrations WHERE Id = @id",
                 new { id }).SingleOrDefault();
         }
 
         internal static IEnumerable<Package> GetPackages(
-            IDbExecutor dbExecutor,
+            SqlConnection db,
             int packageRegistrationKey)
         {
-            return dbExecutor.Query<Package>(
+            return db.Query<Package>(
                 "SELECT pr.Id, p.Version FROM Packages p JOIN PackageRegistrations PR on pr.[Key] = p.PackageRegistrationKey WHERE pr.[Key] = @packageRegistrationKey",
                 new { packageRegistrationKey });
         }
 
         internal static User GetUser(
-            IDbExecutor dbExecutor,
+            SqlConnection db,
             string username)
         {
-            var user = dbExecutor.Query<User>(
+            var user = db.Query<User>(
                 "SELECT u.[Key], u.Username, u.EmailAddress, u.UnconfirmedEmailAddress FROM Users u WHERE u.Username = @username",
                 new { username }).SingleOrDefault();
 
             if (user != null)
             {
-                user.PackageRegistrationIds = dbExecutor.Query<string>(
+                user.PackageRegistrationIds = db.Query<string>(
                     "SELECT r.[Id] FROM PackageRegistrations r INNER JOIN PackageRegistrationOwners o ON o.PackageRegistrationKey = r.[Key] WHERE o.UserKey = @userKey AND NOT EXISTS(SELECT * FROM PackageRegistrationOwners other WHERE other.PackageRegistrationKey = r.[Key] AND other.UserKey != @userKey)",
                     new { userkey = user.Key });
             }
@@ -269,10 +269,10 @@ namespace NuGetGallery.Operations
         }
 
         public static Database GetDatabase(
-            IDbExecutor dbExecutor,
+            SqlConnection db,
             string databaseName)
         {
-            var dbs = dbExecutor.Query<Database>(
+            var dbs = db.Query<Database>(
                 "SELECT name, state FROM sys.databases WHERE name = @databaseName",
                 new { databaseName });
 

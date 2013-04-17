@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Data.SqlClient;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 using NuGetGallery.Operations.Common;
 
 namespace NuGetGallery.Operations

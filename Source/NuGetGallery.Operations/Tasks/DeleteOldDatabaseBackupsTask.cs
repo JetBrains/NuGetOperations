@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
-using AnglicanGeek.DbExecutor;
+using Dapper;
 
 namespace NuGetGallery.Operations
 {
@@ -17,38 +17,37 @@ namespace NuGetGallery.Operations
 
             Log.Trace("Deleting old database backups for server '{0}':", dbServer);
 
-            using (var sqlConnection = new SqlConnection(masterConnectionString))
-            using (var dbExecutor = new SqlExecutor(sqlConnection))
+            using (var db = new SqlConnection(masterConnectionString))
             {
-                sqlConnection.Open();
+                db.Open();
 
-                var dbs = dbExecutor.Query<Database>(
+                var backups = db.Query<Database>(
                     "SELECT name FROM sys.databases WHERE name LIKE 'Backup_%' AND state = @state",
                     new { state = Util.OnlineState }).ToArray();
 
                 // Policy #1: retain last backup each day for last week [day = UTC day]
                 // Policy #2: retain the last 5 backups
-                var dailyBackups = dbs.OrderByDescending(GetTimestamp).GroupBy(GetDay).Take(8).Select(Enumerable.Last);
-                var latestBackups = dbs.OrderByDescending(GetTimestamp).Take(5);
+                var dailyBackups = backups.OrderByDescending(GetTimestamp).GroupBy(GetDay).Take(8).Select(Enumerable.Last);
+                var latestBackups = backups.OrderByDescending(GetTimestamp).Take(5);
 
-                var dbsToSave = new HashSet<Database>();
-                dbsToSave.UnionWith(dailyBackups);
-                dbsToSave.UnionWith(latestBackups);
+                var backupsToSave = new HashSet<Database>();
+                backupsToSave.UnionWith(dailyBackups);
+                backupsToSave.UnionWith(latestBackups);
 
-                if (dbsToSave.Count <= 0)
+                if (backupsToSave.Count <= 0)
                 {
                     throw new ApplicationException("Abort - sanity check failed - we are about to delete all backups");
                 }
 
-                foreach (var db in dbs)
+                foreach (var backup in backups)
                 {
-                    if (dbsToSave.Contains(db))
+                    if (backupsToSave.Contains(backup))
                     {
-                        Log.Info("Retained backup: " + db.Name);
+                        Log.Info("Retained backup: " + backup.Name);
                     }
                     else
                     {
-                        DeleteDatabaseBackup(db, dbExecutor);
+                        DeleteDatabaseBackup(backup, db);
                     }
                 }
             }
@@ -74,13 +73,13 @@ namespace NuGetGallery.Operations
             return daysSinceMillenium;
         }
 
-        private void DeleteDatabaseBackup(Database db, SqlExecutor dbExecutor)
+        private void DeleteDatabaseBackup(Database backup, SqlConnection db)
         {
             if (!WhatIf)
             {
-                dbExecutor.Execute(string.Format("DROP DATABASE {0}", db.Name));
+                db.Execute(string.Format("DROP DATABASE {0}", backup.Name));
             }
-            Log.Info("Deleted database {0}.", db.Name);
+            Log.Info("Deleted database {0}.", backup.Name);
         }
     }
 }
