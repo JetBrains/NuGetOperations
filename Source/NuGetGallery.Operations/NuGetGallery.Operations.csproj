@@ -109,6 +109,7 @@
     <Compile Include="Common\StreamConverter.cs" />
     <Compile Include="DeploymentEnvironment.cs" />
     <Compile Include="Infrastructure\CommandLineParser.cs" />
+    <Compile Include="SemVer.cs" />
     <Compile Include="Tasks\BackupDatabaseTask.cs" />
     <Compile Include="Tasks\BackupPackageFileTask.cs" />
     <Compile Include="Tasks\BackupPackagesTask.cs" />
@@ -149,6 +150,7 @@
     <Compile Include="Infrastructure\ICommandManager.cs" />
     <Compile Include="Infrastructure\Verbosity.cs" />
     <Compile Include="Tasks\DeleteUserTask.cs" />
+    <Compile Include="Tasks\FindDuplicatePackageVersionsTask.cs" />
     <Compile Include="Tasks\ListDeploymentSettingsTask.cs" />
     <Compile Include="Tasks\LowerCaseAllPackageBlobsTask.cs" />
     <Compile Include="Tasks\IBackupDatabase.cs" />
