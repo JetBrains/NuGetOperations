@@ -31,7 +31,7 @@ namespace NuGetGallery.Operations.Tasks
 
                 // Group by Id and and SemVer
                 Log.Info("Grouping by Package ID and Actual Version...");
-                var groups = packages.GroupBy(p => new { p.Id, Version = SemVer.Parse(p.Version).ToString() });
+                var groups = packages.GroupBy(p => new { p.Id, Version = SemanticVersionExtensions.Normalize(p.Version) });
 
                 // Find any groups with more than one entry
                 Log.Info("Finding Duplicates...");
@@ -49,30 +49,7 @@ namespace NuGetGallery.Operations.Tasks
                     foreach (var package in dup)
                     {
                         if (package.Listed) { listedCount++; }
-                        
-                        // Query for owners (but only if we're writing an output report
-                        if (!String.IsNullOrEmpty(OutputFile))
-                        {
-                            var owners = dbExecutor.Query<PackageOwner>(@"
-                                SELECT u.Username, u.EmailAddress
-                                FROM PackageRegistrationOwners o
-                                INNER JOIN Users u ON o.[UserKey] = u.[Key]");
-                            csv.AppendFormat(String.Join(",",
-                                package.Key,
-                                package.PackageRegistrationKey,
-                                package.Id,
-                                package.Version,
-                                SemVer.Parse(package.Version).ToString(),
-                                package.Hash,
-                                package.LastUpdated.ToString("s"),
-                                package.Created.ToString("s"),
-                                package.Listed ? "1" : "0",
-                                package.Latest ? "1" : "0",
-                                String.Join("|", owners.Select(o => o.Username)),
-                                String.Join("|", owners.Select(o => o.EmailAddress))));
-                            csv.AppendLine();
-                            if (package.Latest) { latestCount++; }
-                        }
+                        if (package.Latest) { latestCount++; }
                     }
                     if (listedCount == 1)
                     {
