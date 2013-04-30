@@ -76,24 +76,24 @@ namespace NuGetGallery.Operations.Tasks
                 }
             }
         }
+    }
 
-        public class PackageOwner
-        {
-            public string Username { get; set; }
-            public string EmailAddress { get; set; }
-        }
+    public class PackageOwner
+    {
+        public string Username { get; set; }
+        public string EmailAddress { get; set; }
+    }
 
-        public class PackageSummary
-        {
-            public int Key { get; set; }
-            public int PackageRegistrationKey { get; set; }
-            public string Id { get; set; }
-            public string Version { get; set; }
-            public string Hash { get; set; }
-            public bool Listed { get; set; }
-            public bool Latest { get; set; }
-            public DateTime LastUpdated { get; set; }
-            public DateTime Created { get; set; }
-        }
+    public class PackageSummary
+    {
+        public int Key { get; set; }
+        public int PackageRegistrationKey { get; set; }
+        public string Id { get; set; }
+        public string Version { get; set; }
+        public string Hash { get; set; }
+        public bool Listed { get; set; }
+        public bool Latest { get; set; }
+        public DateTime LastUpdated { get; set; }
+        public DateTime Created { get; set; }
     }
 }

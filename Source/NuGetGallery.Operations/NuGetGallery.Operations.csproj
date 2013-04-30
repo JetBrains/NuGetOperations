@@ -154,6 +154,7 @@
     <Compile Include="Tasks\ListDeploymentSettingsTask.cs" />
     <Compile Include="Tasks\LowerCaseAllPackageBlobsTask.cs" />
     <Compile Include="Tasks\IBackupDatabase.cs" />
+    <Compile Include="Tasks\NormalizePackageBlobNamesTask.cs" />
     <Compile Include="Tasks\OpsTask.cs" />
     <Compile Include="Tasks\PopulatePackageFrameworksTask.cs" />
     <Compile Include="Tasks\CurateWebmatrixPackagesTask.cs" />
