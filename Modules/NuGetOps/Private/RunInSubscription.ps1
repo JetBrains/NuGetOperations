@@ -3,8 +3,11 @@ function RunInSubscription($name, [scriptblock]$scriptblock) {
     if(!$oldSub -or ($oldSub.SubscriptionName -ne $name)) {
         Select-AzureSubscription $name
     }
-    $scriptblock.Invoke();
-    if($oldSub -and ($oldSub.SubscriptionName -ne $name)) {
-        Select-AzureSubscription $oldSub.SubscriptionName
+    try {
+        Invoke-Command $scriptblock
+    } finally {
+        if($oldSub -and ($oldSub.SubscriptionName -ne $name)) {
+            Select-AzureSubscription $oldSub.SubscriptionName
+        }
     }
 }
