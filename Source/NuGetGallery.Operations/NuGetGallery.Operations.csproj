@@ -40,8 +40,14 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\packages\AnglicanGeek.DbExecutor.0.1.2\lib\net40\AnglicanGeek.DbExecutor.dll</HintPath>
     </Reference>
+    <Reference Include="AnglicanGeek.MarkdownMailer">
+      <HintPath>..\..\packages\AnglicanGeek.MarkdownMailer.1.2\lib\net40\AnglicanGeek.MarkdownMailer.dll</HintPath>
+    </Reference>
     <Reference Include="EntityFramework">
       <HintPath>..\..\packages\EntityFramework.5.0.0\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="MarkdownSharp">
+      <HintPath>..\..\packages\MarkdownSharp.1.13.0.0\lib\35\MarkdownSharp.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Data.Edm, Version=5.0.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
