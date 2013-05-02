@@ -1,5 +1,6 @@
 $Global:OpsRoot = (Convert-Path "$PsScriptRoot\..\..")
 $Global:EnvironmentsList = $env:NUGET_OPS_ENVIRONMENTS
+$Global:SubscriptionsList = $env:NUGET_OPS_SUBSCRIPTIONS
 
 $CurrentDeployment = $null
 $CurrentEnvironment = $null
@@ -28,7 +29,6 @@ $Global:Environments = @{}
 if($EnvironmentsList -and (Test-Path $EnvironmentsList)) {
 	if([IO.Path]::GetExtension($EnvironmentsList) -eq ".xml") {
 		$x = [xml](cat $EnvironmentsList)
-		$Global:Environments = @{};
 		$x.environments.environment | ForEach-Object {
 			$Environments[$_.name] = New-Object PSCustomObject
 			Add-Member -NotePropertyMembers @{
@@ -42,6 +42,20 @@ if($EnvironmentsList -and (Test-Path $EnvironmentsList)) {
 		}
 	} else {
 		throw "Your Environments are old and busted. Upgrade to the new hotness!`r`nhttps://github.com/NuGet/NuGetOperations/wiki/Setting-up-the-Operations-Console"
+	}
+}
+
+# Load subscriptions
+$Global:Subscriptions = @{}
+if($SubscriptionsList -and (Test-Path $SubscriptionsList)) {
+	$x = [xml](cat $SubscriptionsList)
+	$x.subscriptions.subscription | ForEach-Object {
+		$Subscriptions[$_.name] = New-Object PSCustomObject
+		Add-Member -NotePropertyMembers @{
+			Version = 0.2;
+			Name = $_.name;
+			Id = $_.id;
+		} -InputObject $Subscriptions[$_.name]
 	}
 }
 
@@ -176,6 +190,24 @@ Write-Host -BackgroundColor Blue -ForegroundColor White @"
 |_|___|___|_____|___|_|    |_____|__|  |_____|
                                               
 "@
+
+# Check Subscriptions
+Write-Host "Checking Subscriptions. This may take a few seconds..."
+$Subscriptions.Values | ForEach-Object {
+	if((Get-AzureSubscription $_.Name) -eq $null) {
+		Write-Warning "You don't have the `"$($_.Name)`" subscription registered. Use New-PublishSettingsFile to register it"
+	} else {
+		# Test it
+		$old = @(Get-AzureSubscription | where { $_.IsDefault -eq $true })[0];
+		Select-AzureSubscription $_.Name
+		Get-AzureStorageAccount -ErrorAction SilentlyContinue -ErrorVariable storageError
+		if($storageError[0].FullyQualifiedErrorId -eq "Microsoft.WindowsAzure.Management.ServiceManagement.StorageServices.GetAzureStorageAccountCommand") {
+			Write-Warning "You haven't uploaded the CER file for $($_.Name). If you lost it, use New-PublishSettingsFile to generated a new one"
+		}
+		Select-AzureSubscription $old.SubscriptionName
+	}
+}
+
 Write-Host -ForegroundColor Black -BackgroundColor Yellow "Welcome to the NuGet Operations Console (v$NuGetOpsVersion)"
 
 if($Environments.Count -eq 0) {

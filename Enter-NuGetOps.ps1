@@ -8,7 +8,8 @@ The path to an Environments.xml file to use as the environment list
 #>
 
 param(
-	[Parameter(Mandatory=$false)][string]$EnvironmentList)
+	[Parameter(Mandatory=$false)][string]$EnvironmentList,
+	[Parameter(Mandatory=$false)][string]$SubscriptionsList)
 
 $MsftDomainNames = @("REDMOND","FAREAST","NORTHAMERICA","NTDEV")
 
@@ -22,6 +23,10 @@ if($EnvironmentList) {
 	$env:NUGET_OPS_ENVIRONMENTS = $EnvironmentList;
 }
 
+if($SubscriptionsList) {
+	$env:NUGET_OPS_SUBSCRIPTIONS = $SubscriptionsList;
+}
+
 if(!$env:NUGET_OPS_ENVIRONMENTS) {
 	# Defaults for Microsoft CorpNet. If you're outside CorpNet, you'll have to VPN in. Of course, if you're hosting your own gallery, you have to build your own scripts :P
 	if([Environment]::UserDomainName -and ($MsftDomainNames -contains [Environment]::UserDomainName) -and (Test-Path "\\nuget\Environments\Environments.xml")) {
@@ -29,6 +34,16 @@ if(!$env:NUGET_OPS_ENVIRONMENTS) {
 	}
 	else {
 		Write-Warning "NUGET_OPS_ENVIRONMENTS is not set. Either set it, or pass the path to an Environments.xml file in the -EnvironmentList parameter"
+	}
+}
+
+if(!$env:NUGET_OPS_SUBSCRIPTIONS) {
+	# Defaults for Microsoft CorpNet. If you're outside CorpNet, you'll have to VPN in. Of course, if you're hosting your own gallery, you have to build your own scripts :P
+	if([Environment]::UserDomainName -and ($MsftDomainNames -contains [Environment]::UserDomainName) -and (Test-Path "\\nuget\Environments\Subscriptions.xml")) {
+		$env:NUGET_OPS_SUBSCRIPTIONS = "\\nuget\Environments\Subscriptions.xml"
+	}
+	else {
+		Write-Warning "NUGET_OPS_SUBSCRIPTIONS is not set. Either set it, or pass the path to an Subscriptions.xml file in the -SubscriptionsList parameter"
 	}
 }
 
