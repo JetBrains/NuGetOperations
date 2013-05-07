@@ -2,6 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace NuGetGallery.Operations.Common
 {
@@ -38,6 +41,44 @@ namespace NuGetGallery.Operations.Common
             }
 
             return ToStream(jArray);
+        }
+
+        /// <summary>
+        /// Converts generic List with key value Tuples as JSON serialized object.
+        /// </summary>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        public static JArray GetJson(IEnumerable<Tuple<string, string>> values)
+        {
+
+            Func<Tuple<string, string>, JObject> objToJson =
+                o => new JObject(
+                        new JProperty("key", o.Item1),
+                        new JProperty("value", o.Item2));
+
+            return new JArray(values.Select(objToJson));
+        }
+
+
+        /// <summary>
+        /// Given the storage account and container name, this method creates a blob with the specified content.
+        /// </summary>
+        /// <param name="account"></param>
+        /// <param name="blobName"></param>
+        /// <param name="containerName"></param>
+        /// <param name="contentType"></param>
+        /// <param name="content"></param>
+        /// <returns></returns>
+        public static Uri CreateBlob(CloudStorageAccount account, string blobName, string containerName, string contentType, Stream content)
+        {            
+            CloudBlobClient blobClient = account.CreateCloudBlobClient();
+            CloudBlobContainer container = blobClient.GetContainerReference(containerName);
+            CloudBlockBlob blockBlob = container.GetBlockBlobReference(blobName);
+
+            blockBlob.Properties.ContentType = contentType;
+            blockBlob.UploadFromStream(content);
+
+            return blockBlob.Uri;
         }
     }
 }
