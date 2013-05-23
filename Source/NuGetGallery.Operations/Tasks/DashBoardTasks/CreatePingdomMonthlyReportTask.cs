@@ -14,6 +14,7 @@ using System;
 using System.Net;
 using System.Web.Script.Serialization;
 
+
 namespace NuGetGallery.Operations
 {
     [Command("createpingdommontlyreport", "Creates report for the monthly average pingdom values", AltName = "cpdmr")]
@@ -25,11 +26,22 @@ namespace NuGetGallery.Operations
         [Option("PingdomUserpassword", AltName = "password")]
         public string Password { get; set; }
 
+        [Option("PingdomAppKey", AltName = "appkey")]
+        public string AppKey { get; set; }
+
+        [Option("Month", AltName = "m")]
+        public int Month { get; set; }
+
+        [Option("Year", AltName = "y")]
+        public int Year { get; set; }
+
+
         public override void ExecuteCommand()
         {
             NetworkCredential nc = new NetworkCredential(UserName, Password);
             WebRequest request = WebRequest.Create("https://api.pingdom.com/api/2.0/checks");
             request.Credentials = nc;
+            request.Headers.Add(AppKey);
             request.PreAuthenticate = true;
             request.Method = "GET";
             WebResponse respose = request.GetResponse();
@@ -39,24 +51,23 @@ namespace NuGetGallery.Operations
                 var objects = js.Deserialize<dynamic>(reader.ReadToEnd());
                 foreach (var o in objects["checks"])
                 {
-                    List<Tuple<string, string>> summary = GetCheckSummaryAvgForLastMonth(o["id"]);
+                    List<Tuple<string, string>> summary = GetLastMonthAvgMetrics(o["id"]);
                     JArray reportObject = ReportHelpers.GetJson(summary);
-                    ReportHelpers.CreateBlob(StorageAccount, o["id"] + "MonthlyReport.json", "dashboard", "application/json", ReportHelpers.ToStream(reportObject));
+                    string checkAlias = o["name"].ToString();
+                    checkAlias = checkAlias.Substring(0, checkAlias.IndexOf(" "));
+                    string monthName = UnixTimeStampUtility.GetMonthName(Month);
+                    ReportHelpers.CreateBlob(StorageAccount, checkAlias + monthName + "MonthlyReport.json", "dashboard", "application/json", ReportHelpers.ToStream(reportObject));
                 }
             }
-        } 
+        }       
 
-        private List<Tuple<string,string>> GetCheckSummaryAvgForLastMonth(int checkId)
+        private List<Tuple<string,string>> GetLastMonthAvgMetrics(int checkId)
         {
-            long currentTime = UnixTimeStampUtility.GetCurrentUnixTimestampSeconds();
-            long lastMonth = UnixTimeStampUtility.GetLastMonthUnixTimestampSeconds();            
-            NetworkCredential nc = new NetworkCredential(UserName,Password);
-            WebRequest request = WebRequest.Create(string.Format("https://api.pingdom.com/api/2.0/summary.average/{0}?includeuptime=true&from={1}&to={2}",checkId, lastMonth, currentTime));
-            request.Credentials = nc;
-            request.PreAuthenticate = true;      
-            request.Method = "GET";
+            long startTime = UnixTimeStampUtility.GetUnixTimestampSeconds(new DateTime(Year, Month, 01));
+            long endTime = startTime + UnixTimeStampUtility.GetSecondsForDays(DateTime.DaysInMonth(Year, Month));        
+          
+            WebRequest request =  GetPingdomRequest(string.Format("https://api.pingdom.com/api/2.0/summary.average/{0}?includeuptime=true&from={1}&to={2}",checkId,startTime,endTime));          
             List<Tuple<string,string>> summaryValues = new List<Tuple<string,string>>();
-
             WebResponse respose = request.GetResponse();
             using (var reader = new StreamReader(respose.GetResponseStream()))
             {
@@ -66,11 +77,51 @@ namespace NuGetGallery.Operations
                 {
                     foreach (var status in summary.Value)
                     {
-                        summaryValues.Add(new Tuple<string,string>(status.Key, status.Value));                       
+                        summaryValues.Add(new Tuple<string,string>((string)status.Key, status.Value.ToString()));                       
                     }                  
                 }
             }
+
+           request = GetPingdomRequest(string.Format("https://api.pingdom.com/api/2.0/summary.outage/{0}?from={1}&to={2}", checkId, startTime, endTime));
+           respose = request.GetResponse();
+           using (var reader = new StreamReader(respose.GetResponseStream()))
+           {
+               JavaScriptSerializer js = new JavaScriptSerializer();
+               var summaryObject = js.Deserialize<PingdomMonthlyReportRootObject>(reader.ReadToEnd());
+               int outages = summaryObject.summary.states.Count(item => item.status.Equals("down"));      
+               summaryValues.Add(new Tuple<string,string>("Outages", outages.ToString()));
+           }
+           
             return summaryValues;            
-        }        
+        }
+
+        private WebRequest GetPingdomRequest(string url)
+        {
+            NetworkCredential nc = new NetworkCredential(UserName, Password);
+            WebRequest request = WebRequest.Create(url);
+            request.Credentials = nc;
+            request.Headers.Add(AppKey);
+            request.PreAuthenticate = true;
+            request.Method = "GET";
+            return request;
+        }
+    }
+
+
+    public class State
+    {
+        public string status { get; set; }
+        public int timefrom { get; set; }
+        public int timeto { get; set; }
+    }
+
+    public class Summary
+    {
+        public List<State> states { get; set; }
+    }
+
+    public class PingdomMonthlyReportRootObject
+    {
+        public Summary summary { get; set; }
     }
 }

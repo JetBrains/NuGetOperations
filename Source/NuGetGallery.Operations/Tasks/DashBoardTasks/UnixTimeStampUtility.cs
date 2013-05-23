@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Globalization;
 
 namespace NuGetGallery.Operations
 {
@@ -44,15 +45,22 @@ namespace NuGetGallery.Operations
             return (long)(DateTime.UtcNow.Subtract(new TimeSpan(7, 0, 0, 0)) - UnixEpoch).TotalSeconds;
         }
 
-        public static double GetSecondsFor30Days()
+        public static long GetSecondsForDays(int noOfDays)
         {
-            double total = new TimeSpan(30, 0, 0, 0).TotalSeconds;
-            return total;
+            double total = new TimeSpan(noOfDays, 0, 0, 0).TotalSeconds;
+            return (long)total;
         }
 
         public static DateTime DateTimeFromUnixTimestampSeconds(long seconds)
         {
             return UnixEpoch.AddSeconds(seconds);
         }
+
+        public static string GetMonthName(int Month)
+        {
+            DateTimeFormatInfo dfi = new DateTimeFormatInfo();
+            string monthName = dfi.GetAbbreviatedMonthName(Month);           
+            return monthName;
+        } 
     }
 }
