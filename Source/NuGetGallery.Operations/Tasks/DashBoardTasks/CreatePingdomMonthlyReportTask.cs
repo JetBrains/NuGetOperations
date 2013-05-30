@@ -29,8 +29,8 @@ namespace NuGetGallery.Operations
         [Option("PingdomAppKey", AltName = "appkey")]
         public string AppKey { get; set; }
 
-        [Option("Month", AltName = "m")]
-        public int Month { get; set; }
+        [Option("MonthName", AltName = "m")]
+        public string Month { get; set; }
 
         [Option("Year", AltName = "y")]
         public int Year { get; set; }
@@ -54,17 +54,16 @@ namespace NuGetGallery.Operations
                     List<Tuple<string, string>> summary = GetLastMonthAvgMetrics(o["id"]);
                     JArray reportObject = ReportHelpers.GetJson(summary);
                     string checkAlias = o["name"].ToString();
-                    checkAlias = checkAlias.Substring(0, checkAlias.IndexOf(" "));
-                    string monthName = UnixTimeStampUtility.GetMonthName(Month);
-                    ReportHelpers.CreateBlob(StorageAccount, checkAlias + monthName + "MonthlyReport.json", "dashboard", "application/json", ReportHelpers.ToStream(reportObject));
+                    checkAlias = checkAlias.Substring(0, checkAlias.IndexOf(" "));                    
+                    ReportHelpers.CreateBlob(StorageAccount, checkAlias + Month + "MonthlyReport.json", "dashboard", "application/json", ReportHelpers.ToStream(reportObject));
                 }
             }
         }       
 
         private List<Tuple<string,string>> GetLastMonthAvgMetrics(int checkId)
         {
-            long startTime = UnixTimeStampUtility.GetUnixTimestampSeconds(new DateTime(Year, Month, 01));
-            long endTime = startTime + UnixTimeStampUtility.GetSecondsForDays(DateTime.DaysInMonth(Year, Month));        
+            long startTime = UnixTimeStampUtility.GetUnixTimestampSeconds(new DateTime(Year, UnixTimeStampUtility.GetMonthNumber(Month), 01));
+            long endTime = startTime + UnixTimeStampUtility.GetSecondsForDays(DateTime.DaysInMonth(Year, UnixTimeStampUtility.GetMonthNumber(Month)));        
           
             WebRequest request =  GetPingdomRequest(string.Format("https://api.pingdom.com/api/2.0/summary.average/{0}?includeuptime=true&from={1}&to={2}",checkId,startTime,endTime));          
             List<Tuple<string,string>> summaryValues = new List<Tuple<string,string>>();

@@ -56,11 +56,22 @@ namespace NuGetGallery.Operations
             return UnixEpoch.AddSeconds(seconds);
         }
 
+        public static int GetDaysInMonth(string month)
+        {
+            return DateTime.DaysInMonth(DateTime.Now.Year, GetMonthNumber(month));
+        }
+
         public static string GetMonthName(int Month)
         {
             DateTimeFormatInfo dfi = new DateTimeFormatInfo();
             string monthName = dfi.GetAbbreviatedMonthName(Month);           
             return monthName;
-        } 
+        }
+
+        public static int GetMonthNumber(string monthName)
+        {            
+            int iMonthNo = Convert.ToDateTime("01-" + monthName + "-2011").Month;
+            return iMonthNo;
+        }
     }
 }

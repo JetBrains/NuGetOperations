@@ -144,6 +144,7 @@
     <Compile Include="Tasks\DashBoardTasks\CreateNetPackageTrendReportTask.cs" />
     <Compile Include="Tasks\DashBoardTasks\CreatePingdomMonthlyReportTask.cs" />
     <Compile Include="Tasks\DashBoardTasks\CreatePingdomWeeklyReportTask.cs" />
+    <Compile Include="Tasks\DashBoardTasks\CreateStatsMonthlyReportTask.cs" />
     <Compile Include="Tasks\DashBoardTasks\CreateTrendingPackagesReportTask.cs" />
     <Compile Include="Tasks\DashBoardTasks\UnixTimeStampUtility.cs" />
     <Compile Include="Tasks\ExecuteAggregateStatisticsTask.cs" />
