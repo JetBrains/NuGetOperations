@@ -16,14 +16,11 @@ namespace NuGetGallery.Operations
         [Option("Connection string to the destination storage server", AltName = "ds")]
         public CloudStorageAccount DestinationStorage { get; set; }
 
-        [Option("Container to copy the blobs to", AltName = "dc")]
+        [Option("Container to scan for copy status", AltName = "dc")]
         public string DestinationContainer { get; set; }
 
-        [Option("Prefix of source blobs to copy. If not specified, copies all blobs", AltName = "p")]
+        [Option("Prefix of blobs to scan (optional)", AltName = "p")]
         public string Prefix { get; set; }
-
-        [Option("Set this switch to wait for the copies to complete and continue to report status")]
-        public bool Wait { get; set; }
 
         public override void ValidateArguments()
         {
