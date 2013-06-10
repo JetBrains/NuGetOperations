@@ -79,6 +79,7 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data.Entity" />
     <Reference Include="System.Data.Services.Client" />
+    <Reference Include="System.IO.Compression" />
     <Reference Include="System.Net.Http">
       <Private>True</Private>
       <HintPath>..\..\packages\System.Net.Http.2.0.20126.16343\lib\net40\System.Net.Http.dll</HintPath>
@@ -148,6 +149,8 @@
     <Compile Include="Infrastructure\SqlDbExecutorFactory.cs" />
     <Compile Include="Model\OfflineDatabaseBackup.cs" />
     <Compile Include="Model\OnlineDatabaseBackup.cs" />
+    <Compile Include="Nupkg.cs" />
+    <Compile Include="NupkgRewriter.cs" />
     <Compile Include="Service References\SqlDac\Reference.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

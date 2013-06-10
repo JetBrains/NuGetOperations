@@ -165,6 +165,15 @@ namespace NuGetGallery.Operations
                 version.ToLowerInvariant());
         }
 
+        public static object GetEditedPackageFileName(string id, string version, string editId)
+        {
+            return string.Format(
+                "{0}.{1}+{2}nupkg",
+                id.ToLowerInvariant(),
+                version.ToLowerInvariant(),
+                editId.ToLowerInvariant());
+        }
+
         internal static string GetTempFolder()
         {
             string ret = Path.Combine(Path.GetTempPath(), "NuGetGallery.Operations");
