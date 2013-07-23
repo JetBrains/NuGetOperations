@@ -40,18 +40,16 @@ namespace NuGetGallery.Operations.Tasks
     }
 
     [Command("handlequeuededits", "Handle Queued Package Edits", AltName = "hqe", MaxArgs = 0)]
-    public class HandleQueuedPackageEditsTask : DatabaseTask
+    public class HandleQueuedPackageEditsTask : DatabaseAndStorageTask
     {
-        public CloudStorageAccount StorageAccount { get; set; }
-
         public override void ExecuteCommand()
         {
             // Work to do:
-            // 0) Find Edits in DB
+            // 0) Find Pending Edits in DB that have been attempted less than 3 times
             // 1) Backup all old NUPKGS
             // 2) Generate all new NUPKGs (in place), and tell gallery the edit is completed
-            var connectionString = (ConnectionString == null ? CurrentEnvironment.MainDatabase.ConnectionString : ConnectionString.ConnectionString);
-            var storageAccount = StorageAccount ?? CurrentEnvironment.MainStorage;
+            var connectionString = ConnectionString.ConnectionString;
+            var storageAccount = StorageAccount;
 
             var edits = ReadEdits(connectionString);
             ConcurrentDictionary<PackageEdit, CloudBlockBlob> blobCache = new ConcurrentDictionary<PackageEdit,CloudBlockBlob>();

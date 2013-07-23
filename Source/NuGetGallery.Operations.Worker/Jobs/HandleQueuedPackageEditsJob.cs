@@ -4,7 +4,6 @@ using NuGetGallery.Operations.Tasks;
 
 namespace NuGetGallery.Operations.Worker.Jobs
 {
-
     class HandleQueuedPackageEditsJob : WorkerJob
     {
         public override TimeSpan Period
