@@ -149,14 +149,14 @@ namespace NuGetGallery.Operations
             return container;
         }
 
-        internal static CloudBlobContainer GetPackagesBlobContainer(CloudBlobClient blobClient)
+        public static CloudBlobContainer GetPackagesBlobContainer(CloudBlobClient blobClient)
         {
             var container = blobClient.GetContainerReference("packages");
             return container;
         }
 
-        internal static string GetPackageFileName(
-            string id,
+        public static string GetPackageFileName(
+            string id, 
             string version)
         {
             return string.Format(
@@ -165,13 +165,11 @@ namespace NuGetGallery.Operations
                 version.ToLowerInvariant());
         }
 
-        public static object GetEditedPackageFileName(string id, string version, string editId)
+        // Before editing a NUPKG in blob storage, we back it up.
+        public static string GetBackupOriginalPackageFileName(string id, string version)
         {
             return string.Format(
-                "{0}.{1}+{2}nupkg",
-                id.ToLowerInvariant(),
-                version.ToLowerInvariant(),
-                editId.ToLowerInvariant());
+                "{0}_{1}+original.nupkg");
         }
 
         internal static string GetTempFolder()
