@@ -169,7 +169,9 @@ namespace NuGetGallery.Operations
         public static string GetBackupOriginalPackageFileName(string id, string version)
         {
             return string.Format(
-                "{0}_{1}+original.nupkg");
+                "originals/{0}/{0}.{1}+original.nupkg", 
+                id.ToLowerInvariant(), 
+                version.ToLowerInvariant());
         }
 
         internal static string GetTempFolder()

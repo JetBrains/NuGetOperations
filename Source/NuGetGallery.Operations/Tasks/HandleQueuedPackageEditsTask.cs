@@ -91,6 +91,7 @@ SELECT [PackageMetadatas].[Key] AS EditKey
             }
         }
 
+        // Hack: in WhatIf mode, returns the original blob
         private CloudBlockBlob BackupBlob(PackageEdit edit)
         {
             CloudStorageAccount storageAccount = CurrentEnvironment.MainStorage;
@@ -105,7 +106,11 @@ SELECT [PackageMetadatas].[Key] AS EditKey
 
             if (!originalPackageBlob.Exists())
             {
-                if (!WhatIf)
+                if (WhatIf)
+                {
+                    return latestPackageBlob; // said hack
+                }
+                else
                 {
                     Log.Info("Backing up blob: {0} to {1}", latestPackageFileName, originalPackageFileName);
                     originalPackageBlob.StartCopyFromBlob(latestPackageBlob);
