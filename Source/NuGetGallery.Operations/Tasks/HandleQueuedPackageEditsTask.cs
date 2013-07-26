@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Dapper;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using NuGet;
@@ -57,7 +57,7 @@ namespace NuGetGallery.Operations.Tasks
             Parallel.ForEach(edits, new ParallelOptions { MaxDegreeOfParallelism = 10 }, edit =>
                 {
                     var blob = BackupBlob(edit);
-                    blobCache.TryAdd(edit, blob);
+                    blobCache.TryAdd(edit, blob); //should always succeed
                 });
 
             foreach (var edit in edits)
@@ -68,12 +68,11 @@ namespace NuGetGallery.Operations.Tasks
 
         private List<PackageEdit> ReadEdits(string connectionString)
         {
-            var edits = new List<PackageEdit>();
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                SqlCommand command = new SqlCommand(@"
-SELECT [PackageMetadatas].[Key]
-      ,[PackageRegistrations].[Id]
+                var results = connection.Query<PackageEdit>(@";
+SELECT [PackageMetadatas].[Key] AS EditKey
+      ,[PackageRegistrations].[Id] as PackageId
       ,[Packages].[Version]
       ,[PackageMetadatas].[EditName]
       ,[PackageMetadatas].[TriedCount]
@@ -87,37 +86,9 @@ SELECT [PackageMetadatas].[Key]
       ,[PackageMetadatas].[Summary]
       ,[PackageMetadatas].[Tags]
       ,[PackageMetadatas].[Title]
-  FROM [PackageMetadatas], [Packages], [PackageRegistrations] WHERE [PackageMetadatas].[PackageKey] = [Packages].[Key] AND [Packages].[PackageRegistrationKey] = [PackageRegistrations].[Key] AND IsCompleted = 0 AND TriedCount < 3"
-, connection);
-                var reader = command.ExecuteReader();
-                while (reader.Read())
-                {
-                    int c = 0;
-                    Func<int> nextInt = () => (int)reader.GetValue(c++);
-                    Func<string> nextStr = () => (string)reader.GetValue(c++);
-                    PackageEdit edit = new PackageEdit
-                    {
-                        EditKey = nextInt(),
-                        PackageId = nextStr(),
-                        Version = nextStr(),
-                        EditName = nextStr(),
-                        TriedCount = nextInt(),
-                        Authors = nextStr(),
-                        Copyright = nextStr(),
-                        Description = nextStr(),
-                        IconUrl = nextStr(),
-                        LicenseUrl = nextStr(),
-                        ProjectUrl = nextStr(),
-                        ReleaseNotes = nextStr(),
-                        Summary = nextStr(),
-                        Tags = nextStr(),
-                        Title = nextStr()
-                    };
-
-                    edits.Add(edit);
-                }
+  FROM [PackageMetadatas], [Packages], [PackageRegistrations] WHERE [PackageMetadatas].[PackageKey] = [Packages].[Key] AND [Packages].[PackageRegistrationKey] = [PackageRegistrations].[Key] AND IsCompleted = 0 AND TriedCount < 3");
+                return results.ToList();
             }
-            return edits;
         }
 
         private CloudBlockBlob BackupBlob(PackageEdit edit)
@@ -144,6 +115,7 @@ SELECT [PackageMetadatas].[Key]
                     {
                         Log.Info("(sleeping for a copy completion)");
                         Thread.Sleep(3000);
+                        originalPackageBlob.FetchAttributes(); // To get a refreshed x-ms-copy-status response header - according to my theoretical understanding
                     }
 
                     if (state.Status != CopyStatus.Success)
@@ -189,12 +161,11 @@ SELECT [PackageMetadatas].[Key]
                 {
                     using (SqlConnection connection = new SqlConnection(connectionString))
                     {
-                        Log.Info("Incrementing the edit tried count in DB, Key={0}", edit.EditKey);
-                        SqlCommand cmd = new SqlCommand(string.Format(@"
+                        int nr = connection.Execute(@"
                             UPDATE [PackageMetadatas]
                             SET [TriedCount] = [TriedCount] + 1
-                            WHERE [Key] = {0}", edit.EditKey));
-                        int nr = cmd.ExecuteNonQuery();
+                            WHERE [Key] = @Key", new { Key = edit.EditKey});
+
                         if (nr != 1)
                         {
                             throw new InvalidOperationException("Something went wrong, no rows were updated");
@@ -217,12 +188,11 @@ SELECT [PackageMetadatas].[Key]
                     // Complete the edit in the gallery DB.
                     using (SqlConnection connection = new SqlConnection(connectionString))
                     {
-                        Log.Info("Finishing the edit in DB, Key={0}", edit.EditKey);
-                        SqlCommand cmd = new SqlCommand(string.Format(@"
+                        int nr = connection.Execute(@"
                             UPDATE [PackageMetadatas]
                             SET [IsCompleted] = 1
-                            WHERE [Key] = {0}", edit.EditKey));
-                        int nr = cmd.ExecuteNonQuery();
+                            WHERE [Key] = @Key", new { Key = edit.EditKey });
+
                         if (nr != 1)
                         {
                             throw new InvalidOperationException("Something went wrong, no rows were updated");
