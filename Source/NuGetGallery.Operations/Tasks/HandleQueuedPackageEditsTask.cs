@@ -18,6 +18,7 @@ namespace NuGetGallery.Operations.Tasks
     {
         // meta
         public int EditKey { get; set; }
+        public int PackageKey { get; set; }
         public string PackageId { get; set; }
         public string Version { get; set; }
         public string EditName { get; set; }
@@ -72,7 +73,8 @@ namespace NuGetGallery.Operations.Tasks
             {
                 var results = connection.Query<PackageEdit>(@";
 SELECT [PackageMetadatas].[Key] AS EditKey
-      ,[PackageRegistrations].[Id] as PackageId
+      ,[PackageRegistrations].[Id] AS PackageId
+      ,[Packages].[Key] AS PackageKey
       ,[Packages].[Version]
       ,[PackageMetadatas].[EditName]
       ,[PackageMetadatas].[TriedCount]
@@ -194,9 +196,19 @@ SELECT [PackageMetadatas].[Key] AS EditKey
                     using (SqlConnection connection = new SqlConnection(connectionString))
                     {
                         int nr = connection.Execute(@"
+                            BEGIN TRAN 
+
                             UPDATE [PackageMetadatas]
                             SET [IsCompleted] = 1
-                            WHERE [Key] = @Key", new { Key = edit.EditKey });
+                            WHERE [Key] = @EditKey
+
+                            UPDATE [Packages]
+                            SET [MetadataKey] = @EditKey
+                              , [LastUpdated] = GETUTCDATE()
+                            WHERE [Key] = @PackageKey
+
+                            COMMIT TRAN
+                            ", new { edit.EditKey, edit.PackageKey });
 
                         if (nr != 1)
                         {
