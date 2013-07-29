@@ -116,13 +116,15 @@ SELECT [PackageMetadatas].[Key] AS EditKey
                 {
                     Log.Info("Backing up blob: {0} to {1}", latestPackageFileName, originalPackageFileName);
                     originalPackageBlob.StartCopyFromBlob(latestPackageBlob);
-                    CopyState state;
-                    
-                    while ((state = originalPackageBlob.CopyState).Status == CopyStatus.Pending)
+                    CopyState state = originalPackageBlob.CopyState;
+                    while (state == null || state.Status == CopyStatus.Pending)
                     {
                         Log.Info("(sleeping for a copy completion)");
                         Thread.Sleep(3000);
                         originalPackageBlob.FetchAttributes(); // To get a refreshed x-ms-copy-status response header - according to my theoretical understanding
+
+                        //refresh state
+                        state = originalPackageBlob.CopyState;
                     }
 
                     if (state.Status != CopyStatus.Success)
