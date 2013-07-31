@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data.SqlClient;
 using NuGetGallery.Operations.Tasks;
+using NuGetGallery.Worker.Jobs;
 
 namespace NuGetGallery.Operations.Worker.Jobs
 {
