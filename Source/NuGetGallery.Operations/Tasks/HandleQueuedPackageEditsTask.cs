@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
@@ -21,7 +22,6 @@ namespace NuGetGallery.Operations.Tasks
         public int PackageKey { get; set; }
         public string PackageId { get; set; }
         public string Version { get; set; }
-        public string EditName { get; set; }
         public int TriedCount { get; set; }
 
         // edits
@@ -38,6 +38,8 @@ namespace NuGetGallery.Operations.Tasks
 
         // output
         public string BlobUrl { get; set; }
+        public string Hash { get; set; }
+        public long PackageFileSize { get; set; }
     }
 
     [Command("handlequeuededits", "Handle Queued Package Edits", AltName = "hqe", MaxArgs = 0)]
@@ -76,7 +78,6 @@ SELECT [PackageMetadatas].[Key] AS EditKey
       ,[PackageRegistrations].[Id] AS PackageId
       ,[Packages].[Key] AS PackageKey
       ,[Packages].[Version]
-      ,[PackageMetadatas].[EditName]
       ,[PackageMetadatas].[TriedCount]
       ,[PackageMetadatas].[Authors]
       ,[PackageMetadatas].[Copyright]
@@ -189,6 +190,12 @@ SELECT [PackageMetadatas].[Key] AS EditKey
                     Log.Info("Rewriting nupkg package in memory", nupkgBlob.Name);
                     NupkgRewriter.RewriteNupkgManifest(readWriteStream, edits);
 
+                    // Get updated hash code, and file size
+                    edit.PackageFileSize = readWriteStream.Length;
+                    var hashAlgorithm = HashAlgorithm.Create("SHA512");
+                    byte[] hashBytes = hashAlgorithm.ComputeHash(readWriteStream.GetBuffer());
+                    edit.Hash = Convert.ToBase64String(hashBytes);
+
                     // Reupload blob
                     Log.Info("Uploading blob from memory {0}", nupkgBlob.Name);
                     readWriteStream.Position = 0;
@@ -202,6 +209,9 @@ SELECT [PackageMetadatas].[Key] AS EditKey
 
                             UPDATE [PackageMetadatas]
                             SET [IsCompleted] = 1
+                              , [HashAlgorithm] = 'SHA512'
+                              , [Hash] = @Hash
+                              , [PackageFileSize] = @PackageFileSize
                             WHERE [Key] = @EditKey
 
                             UPDATE [Packages]
@@ -210,7 +220,7 @@ SELECT [PackageMetadatas].[Key] AS EditKey
                             WHERE [Key] = @PackageKey
 
                             COMMIT TRAN
-                            ", new { edit.EditKey, edit.PackageKey });
+                            ", new { edit.EditKey, edit.PackageKey, HashCode = edit.Hash, edit.PackageFileSize });
 
                         if (nr != 1)
                         {
