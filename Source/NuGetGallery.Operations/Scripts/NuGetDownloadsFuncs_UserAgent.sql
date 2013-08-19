@@ -12,6 +12,8 @@ CREATE FUNCTION [dbo].[UserAgentClient] (@value nvarchar(900))
 RETURNS NVARCHAR(128)
 AS
 BEGIN
+    IF CHARINDEX('ReSharper Extension Manager', @value) > 0 
+        RETURN 'ReSharper Extension Manager'
     IF CHARINDEX('NuGet Add Package Dialog', @value) > 0 
         RETURN 'NuGet Add Package Dialog'
     IF CHARINDEX('NuGet Command Line', @value) > 0 
@@ -48,7 +50,8 @@ CREATE FUNCTION [dbo].[UserAgentClientMajorVersion] (@value NVARCHAR(900))
 RETURNS INT
 AS
 BEGIN
-    IF (CHARINDEX('NuGet Add Package Dialog/', @value) > 0
+    IF (CHARINDEX('ReSharper Extension Manager/', @value) > 0
+        OR CHARINDEX('NuGet Add Package Dialog/', @value) > 0
         OR CHARINDEX('NuGet Command Line/', @value) > 0
         OR CHARINDEX('NuGet Package Explorer/', @value) > 0
         OR CHARINDEX('NuGet Package Manager Console/', @value) > 0
@@ -74,7 +77,8 @@ CREATE FUNCTION [dbo].[UserAgentClientMinorVersion] (@value NVARCHAR(900))
 RETURNS INT
 AS
 BEGIN
-    IF (CHARINDEX('NuGet Add Package Dialog/', @value) > 0
+    IF (CHARINDEX('ReSharper Extension Manager', @value) > 0
+        OR CHARINDEX('NuGet Add Package Dialog', @value) > 0
         OR CHARINDEX('NuGet Command Line/', @value) > 0
         OR CHARINDEX('NuGet Package Explorer/', @value) > 0
         OR CHARINDEX('NuGet Package Manager Console/', @value) > 0
@@ -100,6 +104,9 @@ CREATE FUNCTION [dbo].[UserAgentClientCategory] (@value NVARCHAR(900))
 RETURNS VARCHAR(64)
 AS
 BEGIN
+    IF CHARINDEX('ReSharper Extension Manager', @value) > 0
+        RETURN 'ReSharper'
+
     IF (CHARINDEX('NuGet Add Package Dialog', @value) > 0
         OR CHARINDEX('NuGet Command Line', @value) > 0
         OR CHARINDEX('NuGet Package Explorer Metro', @value) > 0
