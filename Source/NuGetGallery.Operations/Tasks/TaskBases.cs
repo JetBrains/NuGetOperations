@@ -198,10 +198,15 @@ namespace NuGetGallery.Operations
             // Load defaults from environment
             if (CurrentEnvironment != null && ConnectionString == null)
             {
-                ConnectionString = CurrentEnvironment.MainDatabase;
+              ConnectionString = GetConnectionFromEnvironment(CurrentEnvironment);
             }
 
             ArgCheck.RequiredOrConfig(ConnectionString, "ConnectionString");
+        }
+
+        protected virtual SqlConnectionStringBuilder GetConnectionFromEnvironment(DeploymentEnvironment environment)
+        {
+          return environment.MainDatabase;
         }
     }
 
